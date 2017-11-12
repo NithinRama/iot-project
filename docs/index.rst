@@ -47,10 +47,12 @@ Use-Cases
         # where newSensor is a boolean indicating if the client has requested service for the newSensor
 
     **Edit Publisher.py**::
+
         if topics[topic]["newSensor"]:
                 client.publish(topic + "newSensor", newSensorData)
 
     **Edit Subscriber.py**::
+
         elif topic == self.LivingSpaceAddress + "newSensor":
                 self.onNewSensorReceived(payload)
         # Implement support for handing every new type of sensor
@@ -59,12 +61,3 @@ Use-Cases
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
