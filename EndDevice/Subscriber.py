@@ -2,62 +2,113 @@ import paho.mqtt.client as paho
 import time
 from iota import *
 from array import array
+import json
 
-LivinSpaceAddress = "JSRJDCGVCQJWNSXLHUMPESZBMMFENFWTGNHQDAXXHZKDGLMVTAYX9KUNFNPVSBDYDWUJHWOKUQZCDVVCX"
+class IotOS:
 
-def on_connect(client, userdata, flags, rc):
-    print("CONNACK received with code %d." % (rc))
+    def __init__(self, LivingSpaceAddress, seed, iotaUrl, mqttBrokerIp, mqttPort):
+        self.seed = seed
+        self.LivingSpaceAddress = LivingSpaceAddress
+        self.onTempReceived = None
+        self.onProximityReceived = None
+        self.onLedStatusReceived = None
+        self.iotaUrl = iotaUrl
+        self.mqttBrokerIp = mqttBrokerIp
+        self.mqttPort = mqttPort
+        self.client = None
 
-def on_subscribe(client, userdata, mid, granted_qos):
-    print("Subscribed: "+str(mid)+" "+str(granted_qos))
+    def PushTransactionToIota(self, message):
+        """Method to add transactions of data to the Tangle"""
+        api = Iota(
+            # URI of a locally running node.
+            self.iotaUrl,
 
-def on_message(client, userdata, msg):
-    """
-    This function is called whenever a message is recieved on a topic
-    """
-    print(msg.topic + " " + str(msg.qos) + " "+ str(msg.payload))
-    PushTransactionToIota(str(msg.payload))
+            # Seed used for cryptographic functions.
+            seed = str(self.seed).encode()
+        )
+        api.send_transfer(
+        depth = 1,
 
-def PushTransactionToIota(message):
-    api =\
-    Iota(
-        # URI of a locally running node.
-        'http://localhost:5000/',
+        # One or more :py:class:`ProposedTransaction` objects to add to the
+        # bundle.
+        transfers = [
+            ProposedTransaction(
+            # Recipient of the transfer.
+            address =
+                Address(
+                self.LivingSpaceAddress.encode()
+                ),
 
-        # Seed used for cryptographic functions.
-        seed = b'SEED9GOES9'
-    )
-    api.send_transfer(
-    depth = 1,
+            # Amount of IOTA to transfer.
+            # This value may be zero.
+            value = 0,
 
-    # One or more :py:class:`ProposedTransaction` objects to add to the
-    # bundle.
-    transfers = [
-        ProposedTransaction(
-        # Recipient of the transfer.
-        address =
-            Address(
-              LivinSpaceAddress.encode()
+            # Optional tag to attach to the transfer.
+            tag = Tag(b'TAG'),
+
+            # Optional message to include with the transfer.
+            message = TryteString.from_string(message),
             ),
+        ],
+        )
+    
+    def start(self, tempReceiver, ledReceiver, proximityReceiver):
 
-        # Amount of IOTA to transfer.
-        # This value may be zero.
-        value = 0,
+        def on_connect(client, userdata, flags, rc):
+            print("Connected Successfully......")
 
-        # Optional tag to attach to the transfer.
-        tag = Tag(b'TAG'),
+        def on_subscribe(client, userdata, mid, granted_qos):
+            print("Subscribed: " + str(mid) + " " + str(granted_qos))
 
-        # Optional message to include with the transfer.
-        message = TryteString.from_string(message),
-        ),
-    ],
-    )
+        def on_message(client, userdata, msg):
+            """
+            This function is called whenever a message is recieved on a topic
+            """
+            topic = msg.topic
+            payload = msg.payload.decode()
+            if topic == self.LivingSpaceAddress + "temp":
+                self.onTempReceived(payload)
+
+            elif topic == self.LivingSpaceAddress + "prox":
+                self.onProximityReceived(payload)
+            
+            elif topic == self.LivingSpaceAddress + "led":
+                self.onLedStatusReceived(payload)
+
+            self.PushTransactionToIota(topic)
+        
+        self.onLedStatusReceived = ledReceiver
+        self.onProximityReceived = proximityReceiver
+        self.onTempReceived = tempReceiver
+
+        self.client = paho.Client("sub", protocol = paho.MQTTv31)
+        self.client.on_connect = on_connect
+        self.client.connect(self.mqttBrokerIp, self.mqttPort)
+        self.client.on_message = on_message
+        self.client.on_subscribe = on_subscribe
+        self.client.subscribe(self.LivingSpaceAddress + "temp", 1)
+        self.client.subscribe(self.LivingSpaceAddress + "prox", 1)
+        self.client.subscribe(self.LivingSpaceAddress + "led", 1)
+        self.client.loop_forever()
+
+    def controlLed(self, command):
+        print("Controlling LED : " + str(command))
+        self.client.publish(self.LivingSpaceAddress + "controlLed", command)
+
 
 if __name__ == '__main__':
-    client = paho.Client("sub", protocol = paho.MQTTv31)
-    client.on_connect = on_connect
-    client.connect("127.0.0.1", 9000)
-    client.on_message = on_message
-    client.on_subscribe = on_subscribe
-    client.subscribe(LivinSpaceAddress, 1)
-    client.loop_forever()
+    
+    device = IotOS('TISMJUFNRBRHXVH9AITQQRPRFJAPJWWOMPYXMNVPPMYJCRFJGBHFAFKVMNWFZKCPSN9DPVNBBXNBAKKNW', 'BETHESEED', 'http://localhost:5000/', '127.0.0.1', 9000)
+
+    def tempRec(msg):
+        print("Temperature is : " + msg)
+        data = int(msg)
+        device.controlLed("ON")
+
+    def ledRec(msg):
+        print('Led is : ' + msg)
+
+    def proxRecd(msg):
+        print('Prox is : ' + msg)
+
+    device.start(tempRec, ledRec, proxRecd)
