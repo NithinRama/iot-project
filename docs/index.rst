@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to IotOS
-=================================
+Welcome to `IotOS <https://github.com/abhivijay96/iot-project>_`
+=================================================================
 IotOs is an attemp to provide IOT as a service. All the payments and transactions of the service is managed by `IOTA <https://iota.readme.io/>`_. Every living space can have multiple sensors and actuators which can be used by the clients through this design. Each living space becomes a Node in the IOTA netowork.
 
 Design Approach
