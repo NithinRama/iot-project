@@ -875,3 +875,5 @@
 2017/11/12-13:15:56.065108 7fb6d6211700 Created column family [tag] (ID 8)
 2017/11/12-13:15:56.121855 7fb6d6211700 DB pointer 0x7fb6d07c5780
 2017/11/12-13:15:56.122269 7fb6d6211700 File Deletions Enabled
+2017/11/12-17:25:58.238877 7fb63dede700 Shutdown: canceling all background work
+2017/11/12-17:25:58.239898 7fb63dede700 Shutdown complete
